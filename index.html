@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>成语词典</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink:  '#2C1810',
+            prim: { DEFAULT:'#C0392B', dark:'#922B21', light:'#E8594A' },
+            gold: { DEFAULT:'#C9A84C', light:'#F0D060' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500&display=swap');
+    body { font-family:'Noto Sans SC',sans-serif; }
+    .serif { font-family:'Noto Serif SC',serif; }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .fu { animation:fadeUp .25s ease-out; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .spin { animation:spin 1s linear infinite; }
+
+    #si:focus { outline:none; border-color:#C9A84C; box-shadow:0 0 0 3px rgba(201,168,76,.2); }
+    .aci:hover  { background:#FFF8F0; }
+    .tag-s { background:#EFF6FF;color:#2563EB;border:1px solid #BFDBFE; }
+    .tag-a { background:#FFF1F0;color:#DC2626;border:1px solid #FECACA; }
+    .tag-s:hover { background:#DBEAFE; }
+    .tag-a:hover { background:#FEE2E2; }
+    #bar { transition:transform .3s cubic-bezier(.4,0,.2,1); }
+    #ov  { transition:opacity .3s; }
+    .sec { border-top:1px solid #F0EDE8; padding-top:1.25rem; margin-top:1.25rem; }
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-track{background:#F5F1EB}
+    ::-webkit-scrollbar-thumb{background:#D4C5B0;border-radius:3px}
+
+    /* 成语高亮标记 */
+    mark { background:#FEF9C3; color:inherit; border-radius:2px; }
+  </style>
+</head>
+<body class="bg-[#FAF8F5] min-h-screen">
+
+<!-- ======= Header ======= -->
+<header class="bg-prim sticky top-0 z-40 shadow-md">
+  <div class="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+    <div class="serif text-white font-bold tracking-widest text-lg flex-shrink-0 select-none">
+      <span class="text-gold">成</span>语词典
+    </div>
+    <div class="flex-1 relative">
+      <input id="si" type="text" placeholder="输入成语…" autocomplete="off"
+        class="w-full px-4 py-2 rounded-lg border-2 border-transparent bg-white text-ink text-base transition-all">
+      <div id="ac" class="absolute w-full bg-white rounded-lg shadow-xl mt-1 z-50 hidden overflow-hidden border border-gray-100 max-h-64 overflow-y-auto"></div>
+    </div>
+    <button id="btnRand"  title="随机成语"  class="text-white hover:text-gold transition-colors text-xl flex-shrink-0">🎲</button>
+    <button id="btnBm"    title="我的收藏"  class="text-white hover:text-gold transition-colors text-xl flex-shrink-0 relative">
+      🔖<span id="badge" class="hidden absolute -top-1 -right-1 bg-gold text-prim text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"></span>
+    </button>
+  </div>
+</header>
+
+<!-- ======= Main ======= -->
+<main class="max-w-3xl mx-auto px-4 py-8">
+
+  <!-- 欢迎页 -->
+  <div id="welcome" class="text-center py-20 fu">
+    <div class="serif text-8xl text-prim mb-4 select-none" style="text-shadow:2px 4px 16px rgba(192,57,43,.18)">成</div>
+    <h1 class="serif text-2xl text-ink mb-2">成语词典</h1>
+    <p class="text-gray-400 text-sm mb-8">输入成语，探寻汉语之美</p>
+    <div id="status" class="text-xs text-gray-300 mb-6">正在加载数据库…</div>
+    <div id="randWrap" class="hidden">
+      <p class="text-xs text-gray-300 mb-3">随机推荐</p>
+      <div id="randList" class="flex flex-wrap justify-center gap-2"></div>
+    </div>
+  </div>
+
+  <!-- 结果页 -->
+  <div id="res" class="hidden"></div>
+</main>
+
+<!-- ======= 收藏侧边栏 ======= -->
+<div id="ov" class="fixed inset-0 bg-black/40 z-50 hidden opacity-0"></div>
+<aside id="bar" class="fixed right-0 top-0 h-full bg-white shadow-2xl z-50 translate-x-full flex flex-col" style="width:300px">
+  <div class="bg-prim text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
+    <h2 class="serif text-base">我的收藏</h2>
+    <button id="btnClose" class="hover:text-gold transition-colors text-lg leading-none">✕</button>
+  </div>
+  <div id="bmList" class="flex-1 overflow-y-auto p-4"></div>
+</aside>
+
+<script>
+// ─── 数据 ───────────────────────────────────────────
+let db = {};       // word → entry
+let words = [];
+let loaded = false;
+
+async function loadDB() {
+  try {
+    const r = await fetch('data/chengyu.json');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    db = await r.json();
+    words = Object.keys(db);
+    loaded = true;
+    document.getElementById('status').textContent = `已载入 ${words.length.toLocaleString()} 个成语`;
+    showRandHints();
+  } catch(e) {
+    document.getElementById('status').innerHTML =
+      `<span class="text-red-400">加载失败</span> — 请确认已运行 <code class="bg-gray-100 px-1 rounded text-gray-600">start.bat</code>，<br>并通过 <a href="http://localhost:8080" class="text-prim underline">http://localhost:8080</a> 访问（不能直接双击 HTML）`;
+  }
+}
+
+function showRandHints() {
+  const picks = Array.from({length:10}, () => words[Math.floor(Math.random()*words.length)]);
+  document.getElementById('randList').innerHTML = picks.map(w =>
+    `<button onclick="go('${w}')"
+      class="px-3 py-1 bg-white border border-gray-200 rounded-full text-sm text-gray-600 hover:border-prim hover:text-prim transition-colors serif">${w}</button>`
+  ).join('');
+  document.getElementById('randWrap').classList.remove('hidden');
+}
+
+// ─── 搜索 ────────────────────────────────────────────
+function go(word) {
+  word = word.trim();
+  if (!word) return;
+  document.getElementById('si').value = word;
+  hideAC();
+  document.getElementById('welcome').classList.add('hidden');
+  const resEl = document.getElementById('res');
+  resEl.classList.remove('hidden');
+
+  const entry = db[word];
+  if (!entry) {
+    resEl.innerHTML = `
+      <div class="text-center py-24 fu">
+        <div class="text-5xl mb-4">🔍</div>
+        <p class="text-gray-500 text-lg">未找到「${word}」</p>
+        <p class="text-gray-300 text-sm mt-1">请检查拼写是否正确</p>
+      </div>`;
+    return;
+  }
+
+  const pinyin   = entry['拼音'] || '';
+  const abbr     = (entry['简拼'] || '').toUpperCase();
+  const explain  = entry['解释'] || '';
+  const usage    = entry['用法'] || '';
+  const origin   = entry['出处'] || '';
+  const example  = entry['例子'] || '';
+  const story    = entry['成语故事'] || '';
+  const syns     = entry['近义词'] || [];
+  const ants     = entry['反义词'] || [];
+  const bm       = isBookmarked(word);
+
+  // 高亮成语本身在例句中
+  function hiWord(text) {
+    return text.replace(new RegExp(word,'g'), `<mark>${word}</mark>`);
+  }
+
+  resEl.innerHTML = `
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden fu">
+
+    <!-- 头部 -->
+    <div class="bg-gradient-to-br from-prim to-prim-dark px-6 py-6 text-white">
+      <div class="flex items-start justify-between">
+        <div>
+          <h2 class="serif text-4xl tracking-[.2em] mb-1">${word}</h2>
+          <p class="text-red-200 text-sm tracking-wide">${pinyin}</p>
+          ${abbr ? `<p class="text-xs text-red-300 mt-1 tracking-widest">简拼：${abbr}</p>` : ''}
+        </div>
+        <button id="bmBtn" onclick="toggleBm('${word}')"
+          class="text-3xl transition-all mt-1 ${bm?'text-gold':'text-red-300 hover:text-gold'}"
+          title="${bm?'取消收藏':'收藏'}">
+          ${bm?'★':'☆'}
+        </button>
+      </div>
+    </div>
+
+    <!-- 内容 -->
+    <div class="px-6 py-5">
+
+      <!-- 释义 -->
+      <div>
+        <p class="lbl">释义</p>
+        <p class="text-gray-700 leading-relaxed">${explain || '<span class="text-gray-300">暂无</span>'}</p>
+      </div>
+
+      ${usage ? `
+      <div class="sec">
+        <p class="lbl">用法</p>
+        <p class="text-gray-500 text-sm leading-relaxed">${usage}</p>
+      </div>` : ''}
+
+      ${origin ? `
+      <div class="sec">
+        <p class="lbl">出处</p>
+        <p class="text-gray-500 text-sm leading-relaxed">${origin}</p>
+      </div>` : ''}
+
+      <!-- 近义成语 -->
+      <div class="sec">
+        <p class="lbl">近义成语</p>
+        ${syns.length
+          ? `<div class="flex flex-wrap gap-1.5 mt-1">${syns.map(s=>`
+              <span class="tag-s px-2.5 py-0.5 rounded-full text-sm cursor-pointer transition-colors serif"
+                    onclick="go('${s}')">${s}</span>`).join('')}
+             </div>`
+          : `<p class="text-gray-300 text-sm">暂无近义成语</p>`}
+      </div>
+
+      <!-- 反义成语 -->
+      <div class="sec">
+        <p class="lbl">反义成语</p>
+        ${ants.length
+          ? `<div class="flex flex-wrap gap-1.5 mt-1">${ants.map(s=>`
+              <span class="tag-a px-2.5 py-0.5 rounded-full text-sm cursor-pointer transition-colors serif"
+                    onclick="go('${s}')">${s}</span>`).join('')}
+             </div>`
+          : `<p class="text-gray-300 text-sm">暂无反义成语</p>`}
+      </div>
+
+      <!-- 例句 -->
+      ${example ? `
+      <div class="sec">
+        <p class="lbl">例句</p>
+        <div class="flex gap-3 items-start mt-1">
+          <span class="flex-shrink-0 w-5 h-5 rounded-full bg-prim text-white text-[10px] font-bold flex items-center justify-center mt-0.5">1</span>
+          <p class="text-gray-600 text-sm leading-relaxed">${hiWord(example)}</p>
+        </div>
+      </div>` : ''}
+
+      <!-- 成语故事 -->
+      ${story ? `
+      <div class="sec">
+        <p class="lbl">成语故事</p>
+        <p class="text-gray-500 text-sm leading-relaxed">${story}</p>
+      </div>` : ''}
+
+    </div>
+  </div>`;
+
+  // 注入 lbl 样式（只用 JS，避免污染全局）
+  document.querySelectorAll('.lbl').forEach(el => {
+    el.className = 'text-[10px] font-semibold text-gray-300 uppercase tracking-widest mb-1.5';
+  });
+}
+
+// ─── 自动补全 ────────────────────────────────────────
+let timer;
+const si = document.getElementById('si');
+const ac = document.getElementById('ac');
+
+si.addEventListener('input', () => {
+  clearTimeout(timer);
+  const v = si.value.trim();
+  if (!v || !loaded) { hideAC(); return; }
+  timer = setTimeout(() => {
+    // 优先前缀匹配，再包含匹配
+    const prefix = words.filter(w => w.startsWith(v));
+    const contain = words.filter(w => !w.startsWith(v) && w.includes(v));
+    const hits = [...prefix, ...contain].slice(0, 10);
+    if (!hits.length) { hideAC(); return; }
+    ac.innerHTML = hits.map(w => {
+      const hi = w.replace(new RegExp(v,'g'), `<span class="text-prim font-semibold">${v}</span>`);
+      return `<div class="aci px-4 py-2.5 flex items-center gap-3 border-b border-gray-50 last:border-0 cursor-pointer" onclick="go('${w}')">
+        <span class="serif text-ink text-base">${hi}</span>
+        <span class="text-gray-300 text-xs ml-auto">${(db[w]['拼音']||'')}</span>
+      </div>`;
+    }).join('');
+    ac.classList.remove('hidden');
+  }, 150);
+});
+
+si.addEventListener('keydown', e => { if (e.key==='Enter') go(si.value); });
+document.addEventListener('click', e => {
+  if (!e.target.closest('#si') && !e.target.closest('#ac')) hideAC();
+});
+function hideAC() { ac.classList.add('hidden'); }
+
+// ─── 随机 ────────────────────────────────────────────
+document.getElementById('btnRand').addEventListener('click', () => {
+  if (loaded) go(words[Math.floor(Math.random()*words.length)]);
+});
+
+// ─── 收藏 ────────────────────────────────────────────
+function getBm()  { try{return JSON.parse(localStorage.getItem('bm')||'[]')}catch{return[]} }
+function isBookmarked(w) { return getBm().includes(w); }
+
+function toggleBm(w) {
+  let bm = getBm();
+  const btn = document.getElementById('bmBtn');
+  if (bm.includes(w)) {
+    bm = bm.filter(b=>b!==w);
+    if (btn) { btn.textContent='☆'; btn.classList.replace('text-gold','text-red-300'); }
+  } else {
+    bm.unshift(w);
+    if (btn) { btn.textContent='★'; btn.classList.replace('text-red-300','text-gold'); }
+  }
+  localStorage.setItem('bm', JSON.stringify(bm));
+  updateBadge();
+  if (!document.getElementById('bar').classList.contains('translate-x-full')) renderBm();
+}
+
+function updateBadge() {
+  const n = getBm().length, b = document.getElementById('badge');
+  if (n) { b.textContent = n>99?'99+':n; b.classList.remove('hidden'); }
+  else b.classList.add('hidden');
+}
+
+function renderBm() {
+  const bm = getBm(), el = document.getElementById('bmList');
+  if (!bm.length) {
+    el.innerHTML = `<div class="text-center py-12 text-gray-300"><div class="text-3xl mb-2">☆</div><p class="text-sm">还没有收藏</p><p class="text-xs mt-1">点击成语旁的 ☆ 收藏</p></div>`;
+    return;
+  }
+  el.innerHTML = bm.map(w => {
+    const e = db[w];
+    return `<div class="flex items-center gap-2 py-3 border-b border-gray-50 last:border-0">
+      <div class="flex-1 cursor-pointer min-w-0" onclick="go('${w}');closeSidebar()">
+        <div class="serif text-ink font-medium">${w}</div>
+        ${e?`<div class="text-xs text-gray-300 truncate">${e['拼音']||''}</div>`:''}
+      </div>
+      <button onclick="toggleBm('${w}')" class="text-gold text-xl flex-shrink-0 hover:text-gray-300 transition-colors" title="取消收藏">★</button>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('btnBm').addEventListener('click', () => {
+  renderBm();
+  document.getElementById('bar').classList.remove('translate-x-full');
+  const ov = document.getElementById('ov');
+  ov.classList.remove('hidden');
+  requestAnimationFrame(() => { ov.style.opacity='1'; });
+});
+function closeSidebar() {
+  document.getElementById('bar').classList.add('translate-x-full');
+  const ov = document.getElementById('ov');
+  ov.style.opacity='0';
+  setTimeout(() => ov.classList.add('hidden'), 300);
+}
+document.getElementById('btnClose').addEventListener('click', closeSidebar);
+document.getElementById('ov').addEventListener('click', closeSidebar);
+
+// ─── 初始化 ────────────────────────────────────────────
+loadDB();
+updateBadge();
+</script>
+</body>
+</html>
