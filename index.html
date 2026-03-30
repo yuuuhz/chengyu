@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>鎴愯璇嶅吀</title>
+  <title>成语词典</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -22,14 +22,12 @@
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500&display=swap');
     body { font-family:'Noto Sans SC',sans-serif; }
     .serif { font-family:'Noto Serif SC',serif; }
-
     @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
     .fu { animation:fadeUp .25s ease-out; }
     @keyframes spin { to{transform:rotate(360deg)} }
     .spin { animation:spin 1s linear infinite; }
-
     #si:focus { outline:none; border-color:#C9A84C; box-shadow:0 0 0 3px rgba(201,168,76,.2); }
-    .aci:hover  { background:#FFF8F0; }
+    .aci:hover { background:#FFF8F0; }
     .tag-s { background:#EFF6FF;color:#2563EB;border:1px solid #BFDBFE; }
     .tag-a { background:#FFF1F0;color:#DC2626;border:1px solid #FECACA; }
     .tag-s:hover { background:#DBEAFE; }
@@ -40,263 +38,208 @@
     ::-webkit-scrollbar{width:5px}
     ::-webkit-scrollbar-track{background:#F5F1EB}
     ::-webkit-scrollbar-thumb{background:#D4C5B0;border-radius:3px}
-
-    /* 鎴愯楂樹寒鏍囪 */
-    mark { background:#FEF9C3; color:inherit; border-radius:2px; }
+    mark { background:#FEF9C3;color:inherit;border-radius:2px; }
   </style>
 </head>
 <body class="bg-[#FAF8F5] min-h-screen">
 
-<!-- ======= Header ======= -->
+<!-- Header -->
 <header class="bg-prim sticky top-0 z-40 shadow-md">
   <div class="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
     <div class="serif text-white font-bold tracking-widest text-lg flex-shrink-0 select-none">
-      <span class="text-gold">鎴?/span>璇瘝鍏?    </div>
+      <span class="text-gold">成</span>语词典
+    </div>
     <div class="flex-1 relative">
-      <input id="si" type="text" placeholder="杈撳叆鎴愯鈥? autocomplete="off"
+      <input id="si" type="text" placeholder="输入成语…" autocomplete="off"
         class="w-full px-4 py-2 rounded-lg border-2 border-transparent bg-white text-ink text-base transition-all">
       <div id="ac" class="absolute w-full bg-white rounded-lg shadow-xl mt-1 z-50 hidden overflow-hidden border border-gray-100 max-h-64 overflow-y-auto"></div>
     </div>
-    <button id="btnRand"  title="闅忔満鎴愯"  class="text-white hover:text-gold transition-colors text-xl flex-shrink-0">馃幉</button>
-    <button id="btnBm"    title="鎴戠殑鏀惰棌"  class="text-white hover:text-gold transition-colors text-xl flex-shrink-0 relative">
-      馃敄<span id="badge" class="hidden absolute -top-1 -right-1 bg-gold text-prim text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"></span>
+    <button id="btnRand" title="随机成语" class="text-white hover:text-gold transition-colors text-xl flex-shrink-0">🎲</button>
+    <button id="btnBm" title="我的收藏" class="text-white hover:text-gold transition-colors text-xl flex-shrink-0 relative">
+      🔖<span id="badge" class="hidden absolute -top-1 -right-1 bg-gold text-prim text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"></span>
     </button>
   </div>
 </header>
 
-<!-- ======= Main ======= -->
+<!-- Main -->
 <main class="max-w-3xl mx-auto px-4 py-8">
-
-  <!-- 娆㈣繋椤?-->
   <div id="welcome" class="text-center py-20 fu">
-    <div class="serif text-8xl text-prim mb-4 select-none" style="text-shadow:2px 4px 16px rgba(192,57,43,.18)">鎴?/div>
-    <h1 class="serif text-2xl text-ink mb-2">鎴愯璇嶅吀</h1>
-    <p class="text-gray-400 text-sm mb-8">杈撳叆鎴愯锛屾帰瀵绘眽璇箣缇?/p>
-    <div id="status" class="text-xs text-gray-300 mb-6">姝ｅ湪鍔犺浇鏁版嵁搴撯€?/div>
+    <div class="serif text-8xl text-prim mb-4 select-none" style="text-shadow:2px 4px 16px rgba(192,57,43,.18)">成</div>
+    <h1 class="serif text-2xl text-ink mb-2">成语词典</h1>
+    <p class="text-gray-400 text-sm mb-8">输入成语，探寻汉语之美</p>
+    <div id="status" class="text-xs text-gray-300 mb-6">正在加载数据库…</div>
     <div id="randWrap" class="hidden">
-      <p class="text-xs text-gray-300 mb-3">闅忔満鎺ㄨ崘</p>
+      <p class="text-xs text-gray-300 mb-3">随机推荐</p>
       <div id="randList" class="flex flex-wrap justify-center gap-2"></div>
     </div>
   </div>
-
-  <!-- 缁撴灉椤?-->
   <div id="res" class="hidden"></div>
 </main>
 
-<!-- ======= 鏀惰棌渚ц竟鏍?======= -->
+<!-- 收藏侧边栏 -->
 <div id="ov" class="fixed inset-0 bg-black/40 z-50 hidden opacity-0"></div>
 <aside id="bar" class="fixed right-0 top-0 h-full bg-white shadow-2xl z-50 translate-x-full flex flex-col" style="width:300px">
   <div class="bg-prim text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
-    <h2 class="serif text-base">鎴戠殑鏀惰棌</h2>
-    <button id="btnClose" class="hover:text-gold transition-colors text-lg leading-none">鉁?/button>
+    <h2 class="serif text-base">我的收藏</h2>
+    <button id="btnClose" class="hover:text-gold transition-colors text-lg leading-none">✕</button>
   </div>
   <div id="bmList" class="flex-1 overflow-y-auto p-4"></div>
 </aside>
 
 <script>
-// 鈹€鈹€鈹€ 鏁版嵁 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-let db = {};       // word 鈫?entry
-let words = [];
-let loaded = false;
+// ---- 数据字段说明（压缩后）----
+// p = 拼音, x = 解释, u = 用法, o = 出处, e = 例子
+// s = 近义词(array), a = 反义词(array), t = 成语故事
+
+var db = {};
+var words = [];
+var loaded = false;
 
 async function loadDB() {
   try {
-    const r = await fetch('data/chengyu.json');
+    var r = await fetch('data/chengyu.json');
     if (!r.ok) throw new Error('HTTP ' + r.status);
     db = await r.json();
     words = Object.keys(db);
     loaded = true;
-    document.getElementById('status').textContent = `宸茶浇鍏?${words.length.toLocaleString()} 涓垚璇璥;
+    document.getElementById('status').textContent = '已载入 ' + words.length.toLocaleString() + ' 个成语';
     showRandHints();
-  } catch(e) {
+  } catch(err) {
     document.getElementById('status').innerHTML =
-      `<span class="text-red-400">鍔犺浇澶辫触</span> 鈥?璇风‘璁ゅ凡杩愯 <code class="bg-gray-100 px-1 rounded text-gray-600">start.bat</code>锛?br>骞堕€氳繃 <a href="http://localhost:8080" class="text-prim underline">http://localhost:8080</a> 璁块棶锛堜笉鑳界洿鎺ュ弻鍑?HTML锛塦;
+      '<span class="text-red-400">加载失败</span> — 请通过 <a href="http://localhost:8080" class="text-prim underline">http://localhost:8080</a> 访问（不能直接双击 HTML）';
   }
 }
 
 function showRandHints() {
-  const picks = Array.from({length:10}, () => words[Math.floor(Math.random()*words.length)]);
-  document.getElementById('randList').innerHTML = picks.map(w =>
-    `<button onclick="go('${w}')"
-      class="px-3 py-1 bg-white border border-gray-200 rounded-full text-sm text-gray-600 hover:border-prim hover:text-prim transition-colors serif">${w}</button>`
-  ).join('');
+  var picks = [];
+  for (var i = 0; i < 10; i++) picks.push(words[Math.floor(Math.random() * words.length)]);
+  document.getElementById('randList').innerHTML = picks.map(function(w) {
+    return '<button onclick="go(\'' + w + '\')" class="px-3 py-1 bg-white border border-gray-200 rounded-full text-sm text-gray-600 hover:border-prim hover:text-prim transition-colors serif">' + w + '</button>';
+  }).join('');
   document.getElementById('randWrap').classList.remove('hidden');
 }
 
-// 鈹€鈹€鈹€ 鎼滅储 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function go(word) {
   word = word.trim();
   if (!word) return;
   document.getElementById('si').value = word;
   hideAC();
   document.getElementById('welcome').classList.add('hidden');
-  const resEl = document.getElementById('res');
+  var resEl = document.getElementById('res');
   resEl.classList.remove('hidden');
 
-  const entry = db[word];
+  var entry = db[word];
   if (!entry) {
-    resEl.innerHTML = `
-      <div class="text-center py-24 fu">
-        <div class="text-5xl mb-4">馃攳</div>
-        <p class="text-gray-500 text-lg">鏈壘鍒般€?{word}銆?/p>
-        <p class="text-gray-300 text-sm mt-1">璇锋鏌ユ嫾鍐欐槸鍚︽纭?/p>
-      </div>`;
+    resEl.innerHTML = '<div class="text-center py-24 fu"><div class="text-5xl mb-4">🔍</div><p class="text-gray-500 text-lg">未找到「' + esc(word) + '」</p><p class="text-gray-300 text-sm mt-1">请检查拼写是否正确</p></div>';
     return;
   }
 
-  const pinyin   = entry['p'] || '';
-  const abbr     = '';
-  const explain  = entry['x'] || '';
-  const usage    = entry['u'] || '';
-  const origin   = entry['o'] || '';
-  const example  = entry['e'] || '';
-  const story    = entry['t'] || '';
-  const syns     = entry['s'] || [];
-  const ants     = entry['a'] || [];
-  const bm       = isBookmarked(word);
+  var pinyin  = entry.p || '';
+  var explain = entry.x || '';
+  var usage   = entry.u || '';
+  var origin  = entry.o || '';
+  var example = entry.e || '';
+  var story   = entry.t || '';
+  var syns    = entry.s || [];
+  var ants    = entry.a || [];
+  var bm      = isBookmarked(word);
 
-  // 楂樹寒鎴愯鏈韩鍦ㄤ緥鍙ヤ腑
   function hiWord(text) {
-    return text.replace(new RegExp(word,'g'), `<mark>${word}</mark>`);
+    return esc(text).replace(new RegExp(word, 'g'), '<mark>' + word + '</mark>');
   }
 
-  resEl.innerHTML = `
-  <div class="bg-white rounded-2xl shadow-lg overflow-hidden fu">
+  var synHtml = syns.length
+    ? '<div class="flex flex-wrap gap-1.5 mt-1">' + syns.map(function(s){ return '<span class="tag-s px-2.5 py-0.5 rounded-full text-sm cursor-pointer transition-colors serif" onclick="go(\'' + s + '\')">' + esc(s) + '</span>'; }).join('') + '</div>'
+    : '<p class="text-gray-300 text-sm mt-1">暂无近义成语</p>';
 
-    <!-- 澶撮儴 -->
-    <div class="bg-gradient-to-br from-prim to-prim-dark px-6 py-6 text-white">
-      <div class="flex items-start justify-between">
-        <div>
-          <h2 class="serif text-4xl tracking-[.2em] mb-1">${word}</h2>
-          <p class="text-red-200 text-sm tracking-wide">${pinyin}</p>
-          ${abbr ? `<p class="text-xs text-red-300 mt-1 tracking-widest">绠€鎷硷細${abbr}</p>` : ''}
-        </div>
-        <button id="bmBtn" onclick="toggleBm('${word}')"
-          class="text-3xl transition-all mt-1 ${bm?'text-gold':'text-red-300 hover:text-gold'}"
-          title="${bm?'鍙栨秷鏀惰棌':'鏀惰棌'}">
-          ${bm?'鈽?:'鈽?}
-        </button>
-      </div>
-    </div>
+  var antHtml = ants.length
+    ? '<div class="flex flex-wrap gap-1.5 mt-1">' + ants.map(function(s){ return '<span class="tag-a px-2.5 py-0.5 rounded-full text-sm cursor-pointer transition-colors serif" onclick="go(\'' + s + '\')">' + esc(s) + '</span>'; }).join('') + '</div>'
+    : '<p class="text-gray-300 text-sm mt-1">暂无反义成语</p>';
 
-    <!-- 鍐呭 -->
-    <div class="px-6 py-5">
+  var html = '<div class="bg-white rounded-2xl shadow-lg overflow-hidden fu">'
+    + '<div class="bg-gradient-to-br from-prim to-prim-dark px-6 py-6 text-white">'
+    +   '<div class="flex items-start justify-between">'
+    +     '<div>'
+    +       '<h2 class="serif text-4xl tracking-[.2em] mb-1">' + esc(word) + '</h2>'
+    +       '<p class="text-red-200 text-sm tracking-wide">' + esc(pinyin) + '</p>'
+    +     '</div>'
+    +     '<button id="bmBtn" onclick="toggleBm(\'' + word + '\')" class="text-3xl transition-all mt-1 ' + (bm ? 'text-gold' : 'text-red-300 hover:text-gold') + '" title="' + (bm ? '取消收藏' : '收藏') + '">'
+    +       (bm ? '★' : '☆')
+    +     '</button>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="px-6 py-5">'
+    +   '<div>'
+    +     '<p class="text-[10px] font-semibold text-gray-300 uppercase tracking-widest mb-1.5">释义</p>'
+    +     '<p class="text-gray-700 leading-relaxed">' + (explain ? esc(explain) : '<span class="text-gray-300">暂无</span>') + '</p>'
+    +   '</div>';
 
-      <!-- 閲婁箟 -->
-      <div>
-        <p class="lbl">閲婁箟</p>
-        <p class="text-gray-700 leading-relaxed">${explain || '<span class="text-gray-300">鏆傛棤</span>'}</p>
-      </div>
+  if (usage) html += '<div class="sec"><p class="text-[10px] font-semibold text-gray-300 uppercase tracking-widest mb-1.5">用法</p><p class="text-gray-500 text-sm leading-relaxed">' + esc(usage) + '</p></div>';
+  if (origin) html += '<div class="sec"><p class="text-[10px] font-semibold text-gray-300 uppercase tracking-widest mb-1.5">出处</p><p class="text-gray-500 text-sm leading-relaxed">' + esc(origin) + '</p></div>';
 
-      ${usage ? `
-      <div class="sec">
-        <p class="lbl">鐢ㄦ硶</p>
-        <p class="text-gray-500 text-sm leading-relaxed">${usage}</p>
-      </div>` : ''}
+  html += '<div class="sec"><p class="text-[10px] font-semibold text-gray-300 uppercase tracking-widest mb-1.5">近义成语</p>' + synHtml + '</div>';
+  html += '<div class="sec"><p class="text-[10px] font-semibold text-gray-300 uppercase tracking-widest mb-1.5">反义成语</p>' + antHtml + '</div>';
 
-      ${origin ? `
-      <div class="sec">
-        <p class="lbl">鍑哄</p>
-        <p class="text-gray-500 text-sm leading-relaxed">${origin}</p>
-      </div>` : ''}
+  if (example) html += '<div class="sec"><p class="text-[10px] font-semibold text-gray-300 uppercase tracking-widest mb-1.5">例句</p><div class="flex gap-3 items-start mt-1"><span class="flex-shrink-0 w-5 h-5 rounded-full bg-prim text-white text-[10px] font-bold flex items-center justify-center mt-0.5">1</span><p class="text-gray-600 text-sm leading-relaxed">' + hiWord(example) + '</p></div></div>';
+  if (story)   html += '<div class="sec"><p class="text-[10px] font-semibold text-gray-300 uppercase tracking-widest mb-1.5">成语故事</p><p class="text-gray-500 text-sm leading-relaxed">' + esc(story) + '</p></div>';
 
-      <!-- 杩戜箟鎴愯 -->
-      <div class="sec">
-        <p class="lbl">杩戜箟鎴愯</p>
-        ${syns.length
-          ? `<div class="flex flex-wrap gap-1.5 mt-1">${syns.map(s=>`
-              <span class="tag-s px-2.5 py-0.5 rounded-full text-sm cursor-pointer transition-colors serif"
-                    onclick="go('${s}')">${s}</span>`).join('')}
-             </div>`
-          : `<p class="text-gray-300 text-sm">鏆傛棤杩戜箟鎴愯</p>`}
-      </div>
-
-      <!-- 鍙嶄箟鎴愯 -->
-      <div class="sec">
-        <p class="lbl">鍙嶄箟鎴愯</p>
-        ${ants.length
-          ? `<div class="flex flex-wrap gap-1.5 mt-1">${ants.map(s=>`
-              <span class="tag-a px-2.5 py-0.5 rounded-full text-sm cursor-pointer transition-colors serif"
-                    onclick="go('${s}')">${s}</span>`).join('')}
-             </div>`
-          : `<p class="text-gray-300 text-sm">鏆傛棤鍙嶄箟鎴愯</p>`}
-      </div>
-
-      <!-- 渚嬪彞 -->
-      ${example ? `
-      <div class="sec">
-        <p class="lbl">渚嬪彞</p>
-        <div class="flex gap-3 items-start mt-1">
-          <span class="flex-shrink-0 w-5 h-5 rounded-full bg-prim text-white text-[10px] font-bold flex items-center justify-center mt-0.5">1</span>
-          <p class="text-gray-600 text-sm leading-relaxed">${hiWord(example)}</p>
-        </div>
-      </div>` : ''}
-
-      <!-- 鎴愯鏁呬簨 -->
-      ${story ? `
-      <div class="sec">
-        <p class="lbl">鎴愯鏁呬簨</p>
-        <p class="text-gray-500 text-sm leading-relaxed">${story}</p>
-      </div>` : ''}
-
-    </div>
-  </div>`;
-
-  // 娉ㄥ叆 lbl 鏍峰紡锛堝彧鐢?JS锛岄伩鍏嶆薄鏌撳叏灞€锛?  document.querySelectorAll('.lbl').forEach(el => {
-    el.className = 'text-[10px] font-semibold text-gray-300 uppercase tracking-widest mb-1.5';
-  });
+  html += '</div></div>';
+  resEl.innerHTML = html;
 }
 
-// 鈹€鈹€鈹€ 鑷姩琛ュ叏 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-let timer;
-const si = document.getElementById('si');
-const ac = document.getElementById('ac');
+// 自动补全
+var timer;
+var si = document.getElementById('si');
+var ac = document.getElementById('ac');
 
-si.addEventListener('input', () => {
+si.addEventListener('input', function() {
   clearTimeout(timer);
-  const v = si.value.trim();
+  var v = si.value.trim();
   if (!v || !loaded) { hideAC(); return; }
-  timer = setTimeout(() => {
-    // 浼樺厛鍓嶇紑鍖归厤锛屽啀鍖呭惈鍖归厤
-    const prefix = words.filter(w => w.startsWith(v));
-    const contain = words.filter(w => !w.startsWith(v) && w.includes(v));
-    const hits = [...prefix, ...contain].slice(0, 10);
+  timer = setTimeout(function() {
+    var prefix  = words.filter(function(w){ return w.startsWith(v); });
+    var contain = words.filter(function(w){ return !w.startsWith(v) && w.includes(v); });
+    var hits = prefix.concat(contain).slice(0, 10);
     if (!hits.length) { hideAC(); return; }
-    ac.innerHTML = hits.map(w => {
-      const hi = w.replace(new RegExp(v,'g'), `<span class="text-prim font-semibold">${v}</span>`);
-      return `<div class="aci px-4 py-2.5 flex items-center gap-3 border-b border-gray-50 last:border-0 cursor-pointer" onclick="go('${w}')">
-        <span class="serif text-ink text-base">${hi}</span>
-        <span class="text-gray-300 text-xs ml-auto">${(db[w]['鎷奸煶']||'')}</span>
-      </div>`;
+    ac.innerHTML = hits.map(function(w) {
+      var hi = esc(w).replace(new RegExp(esc(v), 'g'), '<span class="text-prim font-semibold">' + esc(v) + '</span>');
+      return '<div class="aci px-4 py-2.5 flex items-center gap-3 border-b border-gray-50 last:border-0 cursor-pointer" onclick="go(\'' + w + '\')">'
+        + '<span class="serif text-ink text-base">' + hi + '</span>'
+        + '<span class="text-gray-300 text-xs ml-auto">' + esc((db[w] && db[w].p) || '') + '</span>'
+        + '</div>';
     }).join('');
     ac.classList.remove('hidden');
   }, 150);
 });
 
-si.addEventListener('keydown', e => { if (e.key==='Enter') go(si.value); });
-document.addEventListener('click', e => {
+si.addEventListener('keydown', function(e) { if (e.key === 'Enter') go(si.value); });
+document.addEventListener('click', function(e) {
   if (!e.target.closest('#si') && !e.target.closest('#ac')) hideAC();
 });
 function hideAC() { ac.classList.add('hidden'); }
 
-// 鈹€鈹€鈹€ 闅忔満 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-document.getElementById('btnRand').addEventListener('click', () => {
-  if (loaded) go(words[Math.floor(Math.random()*words.length)]);
+// 随机
+document.getElementById('btnRand').addEventListener('click', function() {
+  if (loaded) go(words[Math.floor(Math.random() * words.length)]);
 });
 
-// 鈹€鈹€鈹€ 鏀惰棌 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-function getBm()  { try{return JSON.parse(localStorage.getItem('bm')||'[]')}catch{return[]} }
+// 收藏
+function getBm() { try { return JSON.parse(localStorage.getItem('bm') || '[]'); } catch(e) { return []; } }
 function isBookmarked(w) { return getBm().includes(w); }
 
 function toggleBm(w) {
-  let bm = getBm();
-  const btn = document.getElementById('bmBtn');
+  var bm = getBm();
+  var btn = document.getElementById('bmBtn');
   if (bm.includes(w)) {
-    bm = bm.filter(b=>b!==w);
-    if (btn) { btn.textContent='鈽?; btn.classList.replace('text-gold','text-red-300'); }
+    bm = bm.filter(function(b){ return b !== w; });
+    if (btn) { btn.textContent = '☆'; btn.className = btn.className.replace('text-gold','text-red-300 hover:text-gold'); }
   } else {
     bm.unshift(w);
-    if (btn) { btn.textContent='鈽?; btn.classList.replace('text-red-300','text-gold'); }
+    if (btn) { btn.textContent = '★'; btn.className = btn.className.replace('text-red-300 hover:text-gold','text-gold'); }
   }
   localStorage.setItem('bm', JSON.stringify(bm));
   updateBadge();
@@ -304,46 +247,45 @@ function toggleBm(w) {
 }
 
 function updateBadge() {
-  const n = getBm().length, b = document.getElementById('badge');
-  if (n) { b.textContent = n>99?'99+':n; b.classList.remove('hidden'); }
+  var n = getBm().length, b = document.getElementById('badge');
+  if (n) { b.textContent = n > 99 ? '99+' : n; b.classList.remove('hidden'); }
   else b.classList.add('hidden');
 }
 
 function renderBm() {
-  const bm = getBm(), el = document.getElementById('bmList');
+  var bm = getBm(), el = document.getElementById('bmList');
   if (!bm.length) {
-    el.innerHTML = `<div class="text-center py-12 text-gray-300"><div class="text-3xl mb-2">鈽?/div><p class="text-sm">杩樻病鏈夋敹钘?/p><p class="text-xs mt-1">鐐瑰嚮鎴愯鏃佺殑 鈽?鏀惰棌</p></div>`;
+    el.innerHTML = '<div class="text-center py-12 text-gray-300"><div class="text-3xl mb-2">☆</div><p class="text-sm">还没有收藏</p><p class="text-xs mt-1">点击成语旁的 ☆ 收藏</p></div>';
     return;
   }
-  el.innerHTML = bm.map(w => {
-    const e = db[w];
-    return `<div class="flex items-center gap-2 py-3 border-b border-gray-50 last:border-0">
-      <div class="flex-1 cursor-pointer min-w-0" onclick="go('${w}');closeSidebar()">
-        <div class="serif text-ink font-medium">${w}</div>
-        ${e?`<div class="text-xs text-gray-300 truncate">${e['鎷奸煶']||''}</div>`:''}
-      </div>
-      <button onclick="toggleBm('${w}')" class="text-gold text-xl flex-shrink-0 hover:text-gray-300 transition-colors" title="鍙栨秷鏀惰棌">鈽?/button>
-    </div>`;
+  el.innerHTML = bm.map(function(w) {
+    var e = db[w];
+    return '<div class="flex items-center gap-2 py-3 border-b border-gray-50 last:border-0">'
+      + '<div class="flex-1 cursor-pointer min-w-0" onclick="go(\'' + w + '\');closeSidebar()">'
+      +   '<div class="serif text-ink font-medium">' + esc(w) + '</div>'
+      +   (e ? '<div class="text-xs text-gray-300 truncate">' + esc(e.p || '') + '</div>' : '')
+      + '</div>'
+      + '<button onclick="toggleBm(\'' + w + '\')" class="text-gold text-xl flex-shrink-0 hover:text-gray-300 transition-colors" title="取消收藏">★</button>'
+      + '</div>';
   }).join('');
 }
 
-document.getElementById('btnBm').addEventListener('click', () => {
+document.getElementById('btnBm').addEventListener('click', function() {
   renderBm();
   document.getElementById('bar').classList.remove('translate-x-full');
-  const ov = document.getElementById('ov');
+  var ov = document.getElementById('ov');
   ov.classList.remove('hidden');
-  requestAnimationFrame(() => { ov.style.opacity='1'; });
+  requestAnimationFrame(function(){ ov.style.opacity = '1'; });
 });
 function closeSidebar() {
   document.getElementById('bar').classList.add('translate-x-full');
-  const ov = document.getElementById('ov');
-  ov.style.opacity='0';
-  setTimeout(() => ov.classList.add('hidden'), 300);
+  var ov = document.getElementById('ov');
+  ov.style.opacity = '0';
+  setTimeout(function(){ ov.classList.add('hidden'); }, 300);
 }
 document.getElementById('btnClose').addEventListener('click', closeSidebar);
 document.getElementById('ov').addEventListener('click', closeSidebar);
 
-// 鈹€鈹€鈹€ 鍒濆鍖?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 loadDB();
 updateBadge();
 </script>
